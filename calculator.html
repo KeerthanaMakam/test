@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Enhanced Calculator</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <style>
+        body {
+            background: #f7f7f7;
+            font-family: Arial, sans-serif;
+        }
+        .calculator {
+            background: #fff;
+            max-width: 340px;
+            margin: 40px auto;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.11);
+        }
+        .display {
+            width: 100%;
+            height: 48px;
+            font-size: 1.3em;
+            margin-bottom: 12px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            text-align: right;
+            background: #f4f4f4;
+        }
+        .history {
+            height: 60px;
+            font-size: 0.95em;
+            color: #888;
+            overflow-y: auto;
+            margin-bottom: 8px;
+            background: #fafafa;
+            border-radius: 6px;
+            padding: 6px;
+            border: 1px solid #eee;
+        }
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+        button {
+            padding: 15px 0;
+            font-size: 1em;
+            background: #e3e3e3;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #d1d1d1;
+        }
+        .operator {
+            background: #ffc107;
+        }
+        .equals {
+            background: #28a745;
+            color: #fff;
+        }
+        .clear {
+            background: #dc3545;
+            color: #fff;
+        }
+        .memory {
+            background: #17a2b8;
+            color: #fff;
+        }
+        .copy {
+            background: #007bff;
+            color: #fff;
+        }
+        @media (max-width: 400px) {
+            .calculator {
+                max-width: 98vw;
+                padding: 7vw;
+            }
+            button {
+                padding: 10px 0;
+                font-size: 0.95em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator">
+        <div class="history" id="history"></div>
+        <input type="text" class="display" id="display" disabled>
+        <div class="buttons">
+            <button class="memory" onclick="memoryStore()">M+</button>
+            <button class="memory" onclick="memorySubtract()">M-</button>
+            <button class="memory" onclick="memoryRecall()">MR</button>
+            <button class="memory" onclick="memoryClear()">MC</button>
+
+            <button onclick="append('(')">(</button>
+            <button onclick="append(')')">)</button>
+            <button onclick="percent()">%</button>
+            <button class="operator" onclick="append('/')">÷</button>
+
+            <button onclick="append('7')">7</button>
+            <button onclick="append('8')">8</button>
+            <button onclick="append('9')">9</button>
+            <button class="operator" onclick="append('*')">×</button>
+
+            <button onclick="append('4')">4</button>
+            <button onclick="append('5')">5</button>
+            <button onclick="append('6')">6</button>
+            <button class="operator" onclick="append('-')">−</button>
+
+            <button onclick="append('1')">1</button>
+            <button onclick="append('2')">2</button>
+            <button onclick="append('3')">3</button>
+            <button class="operator" onclick="append('+')">+</button>
+
+            <button onclick="append('0')">0</button>
+            <button onclick="append('.')">.</button>
+            <button onclick="toggleSign()">±</button>
+            <button class="clear" onclick="clearDisplay()">C</button>
+
+            <button class="equals" style="grid-column: span 2;" onclick="calculate()">=</button>
+            <button class="copy" style="grid-column: span 2;" onclick="copyToClipboard()">Copy</button>
+        </div>
+    </div>
+    <script>
+        const display = document.getElementById('display');
+        const historyEl = document.getElementById('history');
+        let memory = 0;
+        let history = [];
+
+        function append(char) {
+            if (display.value === 'Error') display.value = '';
+            display.value += char;
+        }
+
+        function clearDisplay() {
+            display.value = '';
+        }
+
+        function calculate() {
+            try {
+                // Replace unicode operators for eval
+                let expr = display.value.replace(/÷/g, '/').replace(/×/g, '*').replace(/−/g, '-');
+                // Percent handling
+                expr = expr.replace(/(\d+(\.\d+)?)%/g, (match, p1) => (parseFloat(p1) / 100));
+                let result = eval(expr);
+                if (!isFinite(result)) throw 'division by zero';
+                history.push(`${display.value} = ${result}`);
+                updateHistory();
+                display.value = result;
+            } catch {
+                display.value = 'Error';
+            }
+        }
+
+        function percent() {
+            // Converts current value to percent
+            if (display.value && !isNaN(display.value)) {
+                display.value = parseFloat(display.value) / 100;
+            } else {
+                append('%');
+            }
+        }
+
+        function toggleSign() {
+            if (display.value && !isNaN(display.value)) {
+                display.value = (-parseFloat(display.value)).toString();
+            }
+        }
+
+        // Memory Functions
+        function memoryStore() {
+            if (!isNaN(display.value)) {
+                memory += parseFloat(display.value) || 0;
+            }
+        }
+        function memorySubtract() {
+            if (!isNaN(display.value)) {
+                memory -= parseFloat(display.value) || 0;
+            }
+        }
+        function memoryRecall() {
+            display.value = memory.toString();
+        }
+        function memoryClear() {
+            memory = 0;
+        }
+
+        // History
+        function updateHistory() {
+            historyEl.innerHTML = history.slice(-4).reverse().join('<br>');
+        }
+
+        // Copy result to clipboard
+        function copyToClipboard() {
+            if (display.value) {
+                navigator.clipboard.writeText(display.value);
+            }
+        }
+
+        // Keyboard Support
+        document.addEventListener('keydown', function(e) {
+            if (e.key >= '0' && e.key <= '9') append(e.key);
+            else if (['+', '-', '*', '/','.','(',')'].includes(e.key)) append(e.key);
+            else if (e.key === 'Enter') calculate();
+            else if (e.key === 'Backspace') display.value = display.value.slice(0, -1);
+            else if (e.key === 'c' && e.ctrlKey) copyToClipboard();
+            else if (e.key === '%') percent();
+        });
+    </script>
+</body>
+</html>
